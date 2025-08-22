@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ARVACODE</title>
+  <style>
+    /* ===== CSS: minimal, semantic, responsive ===== */
+    :root {
+      --bg: #ffffff;
+      --surface: #ffffff;
+      --text: #111111;
+      --muted: #666666;
+      --accent: #111111;
+      --maxw: 1200px;
+      --radius: 0;
+      --gap: 6px;
+      --filmgrain-opacity: 0.5;
+      --filmgrain-speed: 0.0045;
+      --gap-tight: 4px;
+      --stack: calc(var(--gap) * 1.5);
+      --quad-left-col: 1fr;
+      --quad-hero-col: 1.25fr; /* hero column is wider → left tiles appear smaller */
+    }
+
+    @font-face {
+      font-family: 'NDot45';
+      src: url('ndot-45-inspired-by-nothing.otf') format('opentype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    html, body { height: 100%; }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; background-color: var(--bg);
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      line-height: 1.4;
+      position: relative;
+      z-index: 0;
+    }
+
+    h1 {
+        font-size: clamp(1.8rem, 1rem + 3vw, 3rem);
+        line-height: 1.2;
+        margin: 0 auto;
+        text-align: center;
+        overflow: visible;
+        word-break: normal;
+    }
+
+    h2 {
+        font-family: 'NDot45', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+        font-size: 2rem;
+        line-height: 1.25;
+        margin: 6rem auto 3rem;
+        text-align: left;
+        color: #000;
+        overflow: visible;
+        word-break: normal;
+    }
+
+    .prose {
+        text-align: center;
+        font-size: clamp(1.1rem, 0.9rem + 1.2vw, 1.5rem);
+        line-height: 1.6;
+        max-width: 52ch;
+        margin: .75rem auto 0;
+        color: var(--text);
+        text-wrap: balance;
+    }
+
+    .filmgrain { position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: var(--filmgrain-opacity); mix-blend-mode: multiply; }
+    .filmgrain svg { width: 100%; height: 100%; display: block; }
+
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+
+    /* Layout */
+    .container { max-width: var(--maxw); margin-inline: auto; padding: 24px; }
+
+    .canvas-wrap {
+      display: flex;
+      justify-content: center;
+      margin: calc(var(--stack) * 1.25) 0 var(--stack);
+    }
+    .section-center {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      margin: var(--stack) auto;
+    }
+    .section-center iframe {
+      width: 100%;
+      max-width: 960px;
+      aspect-ratio: 16 / 9;
+      height: auto;
+    }
+
+    #logoImg {
+      width: clamp(160px, 30vw, 520px);
+      height: auto;
+      max-height: none;
+      margin-top: 3rem;
+      margin-bottom: 0;
+    }
+
+    /* Base tiles container */
+    .tiles { display: block; width: 100%; margin-bottom: var(--stack); }
+
+    /* 3 columns of vertical rectangles (mobile → 1 col) */
+    .layout-3col-verticals { 
+      display: grid; 
+      gap: var(--gap);
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 960px){
+      .layout-3col-verticals { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    /* 1 vertical + 2 horizontals stacked on the RIGHT */
+    .layout-1v-2h-right { display: flex; gap: var(--gap); align-items: stretch; }
+    .layout-1v-2h-right .left { flex: 1 1 0; min-width: 0; display: flex; }
+    .layout-1v-2h-right .right { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--gap); }
+
+    /* 2 horizontals stacked on the LEFT + 1 vertical on the RIGHT */
+    .layout-1v-2h-left { display: flex; gap: var(--gap); align-items: stretch; }
+    .layout-1v-2h-left .left { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--gap); }
+    .layout-1v-2h-left .right { flex: 1 1 0; min-width: 0; display: flex; }
+
+    /* 2 verticals side-by-side + 2 horizontals stacked on the RIGHT */
+    .layout-2v-2h-right { display: flex; gap: var(--gap); align-items: stretch; }
+    .layout-2v-2h-right .left { flex: 1 1 0; min-width: 0; display: flex; gap: var(--gap); }
+    .layout-2v-2h-right .left .tile { flex: 1 1 0; }
+    .layout-2v-2h-right .right { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--gap); }
+
+    /* 2 horizontals stacked on the LEFT + 2 verticals side-by-side on the RIGHT */
+    .layout-2v-2h-left { display: flex; gap: var(--gap); align-items: stretch; }
+    .layout-2v-2h-left .left { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--gap); }
+    .layout-2v-2h-left .right { flex: 1 1 0; min-width: 0; display: flex; gap: var(--gap); }
+
+    /* Variant: left column = 3/4, right column = 1/4 (stacked) */
+    .layout-2v-2h-left-3q { display: flex; gap: var(--gap); align-items: stretch; }
+    .layout-2v-2h-left-3q .left  { flex: 3 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--gap); }
+    .layout-2v-2h-left-3q .right { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--gap); }
+    @media (max-width: 900px){ .layout-2v-2h-left-3q { flex-direction: column; } }
+    /* Ensure inner tiles can shrink */
+    .layout-2v-2h-left-3q .left .tile, .layout-2v-2h-left-3q .right .tile { min-width: 0; flex: 1 1 0; }
+
+
+    /* 4-column grid of uniform 3x4 tiles (rows grow as needed) */
+    .layout-4col-3x4 {
+      display: grid;
+      gap: var(--gap);
+      grid-template-columns: 1fr; /* mobile */
+    }
+    /* tablet */
+    @media (min-width: 720px){
+      .layout-4col-3x4 { grid-template-columns: repeat(2, 1fr); }
+    }
+    /* desktop */
+    @media (min-width: 1100px){
+      .layout-4col-3x4 { grid-template-columns: repeat(4, 1fr); }
+    }
+    /* enforce 3x4 on all tiles inside */
+    .layout-4col-3x4 .tile { aspect-ratio: 3 / 4; }
+
+
+    /* 4-column grid of uniform 4x3 tiles (rows grow as needed) */
+    .layout-4col-4x3 {
+      display: grid;
+      gap: var(--gap);
+      grid-template-columns: 1fr; /* mobile */
+    }
+    /* tablet */
+    @media (min-width: 720px){
+      .layout-4col-4x3 { grid-template-columns: repeat(2, 1fr); }
+    }
+    /* desktop */
+    @media (min-width: 1100px){
+      .layout-4col-4x3 { grid-template-columns: repeat(4, 1fr); }
+    }
+    /* enforce 4x3 on all tiles inside */
+    .layout-4col-4x3 .tile { aspect-ratio: 4 / 3; }
+
+    /* 3-column grid of uniform 4x3 tiles (rows grow as needed) */
+    .layout-3col-4x3 {
+      display: grid;
+      gap: var(--gap);
+      grid-template-columns: 1fr; /* mobile */
+    }
+    /* tablet */
+    @media (min-width: 720px){
+      .layout-3col-4x3 { grid-template-columns: repeat(2, 1fr); }
+    }
+    /* desktop */
+    @media (min-width: 960px){
+      .layout-3col-4x3 { grid-template-columns: repeat(3, 1fr); }
+    }
+    /* enforce 4x3 on all tiles inside */
+    .layout-3col-4x3 .tile { aspect-ratio: 4 / 3; }
+
+    /* 2-column grid of uniform 4x5 tiles (rows grow as needed) */
+    .layout-2col-4x5 {
+      display: grid;
+      gap: var(--gap);
+      grid-template-columns: 1fr; /* mobile */
+    }
+    @media (min-width: 720px){
+      .layout-2col-4x5 { grid-template-columns: repeat(2, 1fr); }
+    }
+    /* enforce 4x5 on all tiles inside */
+    .layout-2col-4x5 .tile { aspect-ratio: 4 / 5; }
+
+
+    /* 3-column grid of uniform 4x5 tiles (rows grow as needed) */
+    .layout-3col-4x5 {
+      display: grid;
+      gap: var(--gap);
+      grid-template-columns: 1fr; /* mobile */
+    }
+    @media (min-width: 960px){
+      .layout-3col-4x5 { grid-template-columns: repeat(3, 1fr); }
+    }
+    /* enforce 4x5 on all tiles inside */
+    .layout-3col-4x5 .tile { aspect-ratio: 4 / 5; }
+
+    /* 4×5: left = 2×2 grid (smaller), right = hero spanning full height */
+    .layout-quad-4x5-plus-hero {
+      display: grid;
+      gap: var(--gap);
+      grid-template-columns: var(--quad-left-col) var(--quad-left-col) var(--quad-hero-col);
+      align-items: stretch;
+    }
+    .layout-quad-4x5-plus-hero .left {
+      grid-column: 1 / span 2;
+      display: grid;
+      gap: var(--gap);
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .layout-quad-4x5-plus-hero .right {
+      grid-column: 3;
+      display: flex;
+    }
+    /* Left tiles keep strict 4×5 ratio */
+    .layout-quad-4x5-plus-hero .left .tile { aspect-ratio: 4 / 5; }
+    /* Right hero fills the available height exactly */
+    .layout-quad-4x5-plus-hero .right .tile { height: 100%; aspect-ratio: auto; width: 100%; }
+    .layout-quad-4x5-plus-hero .right .tile .media { object-fit: cover; }
+
+    @media (max-width: 900px){
+      .layout-quad-4x5-plus-hero { grid-template-columns: 1fr; }
+      .layout-quad-4x5-plus-hero .left { grid-column: auto; }
+      .layout-quad-4x5-plus-hero .right { grid-column: auto; }
+    }
+
+    /* Ensure inner tiles can shrink and don’t overflow */
+    .layout-2v-2h-left .left, .layout-2v-2h-left .right,
+    .layout-2v-2h-right .left, .layout-2v-2h-right .right { min-width: 0; flex-basis: 0; }
+    .layout-2v-2h-left .left .tile, .layout-2v-2h-left .right .tile,
+    .layout-2v-2h-right .left .tile, .layout-2v-2h-right .right .tile { min-width: 0; flex: 1 1 0; }
+
+    @media (max-width: 900px){
+      .layout-1v-2h-right, .layout-1v-2h-left,
+      .layout-2v-2h-right, .layout-2v-2h-left { flex-direction: column; }
+    }
+
+    /* Tiles */
+    .tile {
+      position: relative;
+      margin: 0; /* reset default figure margins */
+      border-radius: var(--radius);
+      overflow: clip;
+      background: var(--surface);
+      /*border: 1px solid #e5e5e5;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.04);*/
+    }
+    /* Ensure inner media fills the tile box */
+    .tile > a, .tile > iframe, .tile > img, .tile > video { display: block; width: 100%; height: 100%; }
+    .tile > iframe { border: 0; }
+    .tile > a > img.media { width: 100%; height: 100%; object-fit: cover; }
+    .tile:focus-within, .tile:focus, .tile:hover {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--accent) inset, 0 10px 28px rgba(0,0,0,0.08);
+    }
+    .tile > a { display: block; height: 100%; }
+
+    /* Aspect-ratio helpers → large rectangles in different shapes */
+    .ar-1x1 { aspect-ratio: 1 / 1; }
+    .ar-4x3 { aspect-ratio: 4 / 3; }
+    .ar-3x4 { aspect-ratio: 3 / 4; }
+    .ar-8x9 { aspect-ratio: 8 / 9.2; }
+    .ar-16x9 { aspect-ratio: 16 / 9; }
+    .ar-9x16 { aspect-ratio: 9 / 16; }
+    .ar-21x9 { aspect-ratio: 21 / 9; }
+
+    /* Media fill */
+    .media { width: 100%; height: 100%; object-fit: cover; }
+
+    /* Footer */
+    footer { color: var(--muted); border-top: 0px solid #e5e5e5; margin-top: 36px; }
+    .foot { display: flex; gap: 12px; padding: 20px 0; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+
+    /* Contact form: full-bleed, responsive height */
+    .form-embed { margin: var(--stack) 0; }
+    .form-embed iframe { width: 100%; height: clamp(700px, 80vh, 1400px); border: 0; display: block; }
+    /* Break out of the centered container to go edge-to-edge */
+    .form-embed.full-bleed { width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); }
+
+    /* Blur the page when lightbox is open */
+    body.modal-open { overflow: hidden; }
+    body.modal-open > :not(#lightbox):not(.filmgrain) { filter: blur(6px); transition: filter .2s ease; }
+
+    /* Modal / Lightbox */
+    dialog#lightbox { width: min(96vw, var(--maxw)); border: none; padding: 0; background: transparent; }
+    dialog#lightbox::backdrop { background: rgba(0,0,0,.6); }
+    .lb-wrap { position: relative; }
+    .lb-media { display: block; width: 100%; height: auto; max-height: 86vh; object-fit: contain; }
+    .lb-close { position: absolute; top: 10px; right: 10px; border: 1px solid rgba(255,255,255,0.4); background: rgba(0,0,0,0.5); color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+  </style>
+</head>
+<body>
+
+  <div class="filmgrain" aria-hidden="true">
+    <svg xmlns="http://www.w3.org/2000/svg">
+      <filter id="grainFilter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="2" seed="0"/>
+        <feColorMatrix type="matrix"
+          values="0.3333 0.3333 0.3333 0 0
+                  0.3333 0.3333 0.3333 0 0
+                  0.3333 0.3333 0.3333 0 0
+                  0      0      0      1 0"/>
+      </filter>
+      <rect width="100%" height="100%" filter="url(#grainFilter)"/>
+    </svg>
+  </div>
+
+  <main id="content" class="container">
+    <div class="canvas-wrap">
+        <img id="logoImg" src="arvacode.png" alt="Logo" />
+    </div>
+
+    <h2>The lens</h2>
+    <section class="tiles layout-3col-verticals" aria-label="Three vertical rectangles">
+        <figure class="tile ar-3x4"><a href="#"><img class="media" src="editorial_1_ntsc.png" alt="Vertical 1" loading="lazy"></a></figure>
+        <figure class="tile ar-3x4"><a href="#"><img class="media" src="editorial_3_ntsc.png" alt="Vertical 2" loading="lazy"></a></figure>
+        <figure class="tile ar-3x4"><a href="#"><img class="media" src="editorial_4_ntsc.png" alt="Vertical 3" loading="lazy"></a></figure>
+    </section>
+    
+    <section class="tiles layout-3col-verticals" aria-label="Three vertical rectangles">
+        <figure class="tile ar-9x16"><a href="https://youtube.com/shorts/G2E6Pb3iOs8?si=p_gDKjsnXpzPb2mb"><img class="media" src="mavica short 1.png" alt="Reel 1" loading="lazy"></a></figure>
+        <figure class="tile ar-9x16"><a href="https://youtube.com/shorts/tlaZTCmj_II?si=jUZ65UdParcVmoyi"><img class="media" src="mavica short 2.png" alt="Reel 2" loading="lazy"></a></figure>
+        <figure class="tile ar-9x16"><a href="https://youtube.com/shorts/fzhVUDbGIvc?si=S8t8jWmGVY6wBfUK"><img class="media" src="mavica short 3.png" alt="Reel 3" loading="lazy"></a></figure>
+    </section>
+
+    <h2>The seen</h2>
+    <section class="tiles layout-4col-3x4" aria-label="Four column grid of 3x4 images">
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_4.jpg" alt="Photograph 1" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_17.jpg" alt="Photograph 2" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_21.jpg" alt="Photograph 3" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_37.jpg" alt="Photograph 4" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_39.jpg" alt="Photograph 5" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_44.jpg" alt="Photograph 6" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_32.jpg" alt="Photograph 7" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_31.jpg" alt="Photograph 8" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_43.jpg" alt="Photograph 9" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_19.jpg" alt="Photograph 10" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_20.jpg" alt="Photograph 11" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_27.jpg" alt="Photograph 12" loading="lazy"></a></figure>
+    </section>
+    <section class="tiles layout-3col-4x3" aria-label="Three column grid of 4x3 images">
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_26.jpg" alt="Grid item 1" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_11.jpg" alt="Grid item 2" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_18.jpg" alt="Grid item 3" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_36.jpg" alt="Grid item 4" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_22.jpg" alt="Grid item 5" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_42.jpg" alt="Grid item 6" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_13.jpg" alt="Grid item 7" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_14.jpg" alt="Grid item 8" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_15.jpg" alt="Grid item 9" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_29.jpg" alt="Grid item 10" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_28.jpg" alt="Grid item 11" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_35.jpg" alt="Grid item 12" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_1.jpg" alt="Grid item 12" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_8.jpg" alt="Grid item 12" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_10.jpg" alt="Grid item 12" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_9.jpg" alt="Grid item 12" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_30.jpg" alt="Grid item 12" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="mavica_pics_41.jpg" alt="Grid item 12" loading="lazy"></a></figure>
+
+    </section>
+
+
+    <h2>The pen</h2>
+    <section class="tiles layout-quad-4x5-plus-hero" aria-label="Four 4x5 left and one large 4x5 right">
+      <div class="left">
+        <figure class="tile"><a href="#"><img class="media" src="drawings_4.png" alt="4x5 quad item 1" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="drawings_3.png" alt="4x5 quad item 2" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="drawings_1.png" alt="4x5 quad item 3" loading="lazy"></a></figure>
+        <figure class="tile"><a href="#"><img class="media" src="drawings_5.png" alt="4x5 quad item 4" loading="lazy"></a></figure>
+      </div>
+      <div class="right">
+        <figure class="tile"><a href="#"><img class="media" src="drawings_2.png" alt="4x5 hero" loading="lazy"></a></figure>
+      </div>
+    </section>
+
+    <h2>the foundation</h2>
+    <section class="tiles layout-1v-2h-right" aria-label="Vertical left, two horizontals right">
+        <div class="left">
+            <figure class="tile ar-8x9"><iframe src="https://www.youtube.com/embed/OY9xajJUX3w" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></figure>
+        </div>
+        <div class="right">
+            <figure class="tile ar-16x9"><iframe src="https://www.youtube.com/embed/GtmWa6wZWZg" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></figure>
+            <figure class="tile ar-16x9"><iframe src="https://www.youtube.com/embed/Zt2o5Ea4snc?si=TKuCegBmoSdxpp3J" title="YouTube video player" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></figure>
+        </div>
+    </section>
+
+    <h2>the structure</h2>
+    <section class="tiles layout-2v-2h-left-3q" aria-label="Two horizontals left (3/4), two stacked right (1/4)">
+    <div class="left">
+        <figure class="tile ar-16x9"><a href="#"><img class="media" src="bookcover.png" alt="Horizontal Top" loading="lazy"></a></figure>
+        <figure class="tile ar-16x9"><a href="#"><img class="media" src="bookpage.png" alt="Horizontal Bottom" loading="lazy"></a></figure>
+    </div>
+    <div class="right">
+        <figure class="tile ar-3x4"><a href="#"><img class="media" src="lego_building_1.png" alt="Vertical A" loading="lazy"></a></figure>
+        <figure class="tile ar-3x4"><a href="#"><img class="media" src="lego_building_2.png" alt="Vertical B" loading="lazy"></a></figure>
+    </div>
+    </section>
+        
+    <h2>Contact</h2>
+    <section id="contact">
+        <div class="form-embed full-bleed" role="region" aria-label="Submission form (Google Forms)">
+            <iframe id="googleForm" title="Huema contact form" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://docs.google.com/forms/d/e/1FAIpQLSc24RK_cRssiYM2cANQwzS6g_M9RE-W9PA7w0QWhbFLh0YWfw/viewform?embedded=true"></iframe>
+        </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container foot">
+      <small>© <span id="year"></span> Antonio Varela</small>
+      <small><a href="#content">Back to top</a></small>
+    </div>
+  </footer>
+
+  <!-- Lightbox Modal -->
+  <dialog id="lightbox" aria-labelledby="lb-title">
+    <div class="lb-wrap">
+      <button class="lb-close" data-close>
+        <span aria-hidden>✕</span>
+        <span class="sr-only">Close</span>
+      </button>
+      <div id="lb-content"></div>
+    </div>
+  </dialog>
+
+  <script>
+    // ===== JS: minimal, functional helpers =====
+    const $ = (sel, root = document) => root.querySelector(sel);
+    const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+    const setYear = () => { $('#year').textContent = new Date().getFullYear(); };
+
+    // Build an <img> or <iframe> for the lightbox from an anchor or image element
+    const buildLightboxNode = (el) => {
+      // If user clicked directly on an <img>
+      if (el && el.tagName === 'IMG') {
+        const img = new Image();
+        img.src = el.currentSrc || el.src;
+        img.alt = el.alt || '';
+        img.className = 'lb-media';
+        return img;
+      }
+
+      // Otherwise treat as an anchor
+      const anchor = el;
+      const type = anchor?.dataset?.type;
+      const href = anchor?.getAttribute?.('href');
+
+      // IMAGE CASES: explicit data-type OR implicit image link (including href="#")
+      if (type === 'image' || (!type && anchor?.querySelector?.('img'))) {
+        const innerImg = anchor.querySelector('img');
+        const src = (href && href !== '#') ? href : (innerImg?.currentSrc || innerImg?.src);
+        if (!src) return null;
+        const img = new Image();
+        img.src = src;
+        img.alt = innerImg?.alt || '';
+        img.className = 'lb-media';
+        return img;
+      }
+
+      // YOUTUBE CASE
+      if (type === 'youtube') {
+        try {
+          const url = new URL(href);
+          const id = url.searchParams.get('v') || href.split('/').pop();
+          const iframe = document.createElement('iframe');
+          iframe.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1`;
+          iframe.loading = 'lazy';
+          iframe.allow = 'autoplay; encrypted-media; picture-in-picture; web-share';
+          iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+          iframe.className = 'lb-media';
+          iframe.title = 'Video player';
+          return iframe;
+        } catch (e) { /* if URL parse fails, ignore */ }
+      }
+
+      // default: null (let normal navigation occur)
+      return null;
+    };
+
+    const openLightbox = (node) => {
+      const dlg = $('#lightbox');
+      const slot = $('#lb-content');
+      slot.innerHTML = '';
+      if (node) slot.appendChild(node);
+      document.body.classList.add('modal-open');
+      dlg.showModal();
+    };
+
+    const closeLightbox = () => {
+      const dlg = $('#lightbox');
+      const slot = $('#lb-content');
+      slot.innerHTML = '';
+      document.body.classList.remove('modal-open');
+      dlg.close();
+    };
+
+    const onTileClick = (ev) => {
+      // Prefer the nearest anchor; otherwise the image itself
+      const anchor = ev.target.closest('a[href]');
+      const img = ev.target.closest('img.media');
+      const target = anchor || img;
+      if (!target) return;
+
+      const node = buildLightboxNode(target);
+      if (node) {
+        ev.preventDefault();
+        openLightbox(node);
+      }
+    };
+
+    const onBackdropClick = (ev) => {
+      const dlg = $('#lightbox');
+      const rect = dlg.getBoundingClientRect();
+      const inDialog = (ev.clientX >= rect.left && ev.clientX <= rect.right && ev.clientY >= rect.top && ev.clientY <= rect.bottom);
+      if (!inDialog) closeLightbox();
+    };
+
+    const onKeydown = (ev) => { if (ev.key === 'Escape') closeLightbox(); };
+
+    // Init
+    setYear();
+    document.querySelectorAll('.tiles').forEach(el => el.addEventListener('click', onTileClick));
+    $('[data-close]').addEventListener('click', closeLightbox);
+    $('#lightbox').addEventListener('click', onBackdropClick);
+    document.addEventListener('keydown', onKeydown);
+
+    // Animated film grain
+    (() => {
+      const turb = document.querySelector('.filmgrain feTurbulence');
+      if (!turb) return;
+      let t = 0;
+      const speed = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--filmgrain-speed')) || 0.0045;
+      function frame(){
+        t += speed;
+        const bf = 0.62 + (Math.sin(t * 120) * 0.02); // subtle variation
+        turb.setAttribute('baseFrequency', bf.toFixed(3));
+        turb.setAttribute('seed', Math.floor(Math.random() * 4096));
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>
