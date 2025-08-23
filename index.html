@@ -52,9 +52,9 @@
 
     h2 {
         font-family: 'NDot45', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-        font-size: 2rem;
+        font-size: 1rem;
         line-height: 1.25;
-        margin: 6rem auto 3rem;
+        margin: 6rem auto 2rem;
         text-align: left;
         color: #000;
         overflow: visible;
@@ -141,13 +141,37 @@
     .layout-2v-2h-left .left { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--gap); }
     .layout-2v-2h-left .right { flex: 1 1 0; min-width: 0; display: flex; gap: var(--gap); }
 
-    /* Variant: left column = 3/4, right column = 1/4 (stacked) */
-    .layout-2v-2h-left-3q { display: flex; gap: var(--gap); align-items: stretch; }
-    .layout-2v-2h-left-3q .left  { flex: 3 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--gap); }
-    .layout-2v-2h-left-3q .right { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--gap); }
-    @media (max-width: 900px){ .layout-2v-2h-left-3q { flex-direction: column; } }
-    /* Ensure inner tiles can shrink */
-    .layout-2v-2h-left-3q .left .tile, .layout-2v-2h-left-3q .right .tile { min-width: 0; flex: 1 1 0; }
+    /* Fresh (v3): Parent grid defines two rows; left tiles set row height via aspect; right tiles stretch to match */
+    .layout-2v-2h-left-3q {
+      display: grid;
+      gap: var(--gap);
+      grid-template-columns: 3fr 1fr; /* 3/4 : 1/4 split */
+      grid-template-rows: auto auto;   /* rows sized by content (left AR tiles) */
+      align-items: stretch;
+    }
+    /* Flatten wrappers so child tiles become grid items of the parent */
+    .layout-2v-2h-left-3q .left,
+    .layout-2v-2h-left-3q .right { display: contents; }
+
+    /* Explicit placement: left col rows 1/2, right col rows 1/2 */
+    .layout-2v-2h-left-3q .left .tile:first-of-type  { grid-column: 1; grid-row: 1; }
+    .layout-2v-2h-left-3q .left .tile:last-of-type   { grid-column: 1; grid-row: 2; }
+    .layout-2v-2h-left-3q .right .tile:first-of-type { grid-column: 2; grid-row: 1; }
+    .layout-2v-2h-left-3q .right .tile:last-of-type  { grid-column: 2; grid-row: 2; }
+
+    /* Right-side tiles fill the row height; ignore AR so they match left */
+    .layout-2v-2h-left-3q .right .tile { height: 100%; aspect-ratio: auto; }
+    .layout-2v-2h-left-3q .right .tile .media { object-fit: cover; }
+
+    @media (max-width: 900px){
+      .layout-2v-2h-left-3q { grid-template-columns: 1fr; grid-template-rows: auto; }
+      /* Reset placement so items stack naturally on mobile */
+      .layout-2v-2h-left-3q .left .tile:first-of-type,
+      .layout-2v-2h-left-3q .left .tile:last-of-type,
+      .layout-2v-2h-left-3q .right .tile:first-of-type,
+      .layout-2v-2h-left-3q .right .tile:last-of-type { grid-column: auto; grid-row: auto; }
+      .layout-2v-2h-left-3q .right .tile { height: auto; }
+    }
 
 
     /* 4-column grid of uniform 3x4 tiles (rows grow as needed) */
@@ -299,6 +323,38 @@
     /* Media fill */
     .media { width: 100%; height: 100%; object-fit: cover; }
 
+    /* === Safari Debug Tests (scoped) === */
+    .safari-tests { margin-top: calc(var(--stack) * 2); border-top: 1px dashed #ddd; padding-top: var(--stack); }
+    .safari-tests h3 { margin: .5rem 0 .25rem; font-family: inherit; font-weight: 600; font-size: .95rem; color: #000; }
+    .safari-tests .note { font-size: .85rem; color: var(--muted); margin-bottom: .5rem; }
+
+    .safari-tests .test-grid { display: grid; gap: var(--gap); grid-template-columns: 1fr 1fr 1fr; grid-template-areas: "a b hero" "c d hero"; }
+    .safari-tests .test-grid .tile { position: relative; background: #f5f5f5; outline: 1px dashed #ccc; aspect-ratio: 4 / 5; }
+    .safari-tests .test-grid .a { grid-area: a; }
+    .safari-tests .test-grid .b { grid-area: b; }
+    .safari-tests .test-grid .c { grid-area: c; }
+    .safari-tests .test-grid .d { grid-area: d; }
+    .safari-tests .test-grid .hero { grid-area: hero; }
+
+    .safari-tests .label { position: absolute; top: 6px; left: 6px; font-size: 12px; background: rgba(0,0,0,.6); color: #fff; padding: 2px 6px; border-radius: 4px; }
+
+    /* Important: do NOT force anchors to 100% height inside tests */
+    .safari-tests .tile > a { display: block; width: 100%; height: auto; }
+    .safari-tests .tile > a > img.media { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    /* Toggle to simulate global fill rule if needed */
+    .safari-tests .global-fill-on .tile > a { height: 100% !important; }
+
+    /* Ratio wrapper (padding-top trick) */
+    .safari-tests .ratio-4x5 { position: relative; width: 100%; display: block; }
+    .safari-tests .ratio-4x5::before { content: ""; display: block; padding-top: 125%; }
+    .safari-tests .ratio-4x5 > * { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    @supports (aspect-ratio: 1 / 1) {
+      .safari-tests .ratio-4x5 { position: static; }
+      .safari-tests .ratio-4x5::before { display: none; }
+      .safari-tests .ratio-4x5 > * { position: static; height: 100%; }
+    }
+
     /* Footer */
     footer { color: var(--muted); border-top: 0px solid #e5e5e5; margin-top: 36px; }
     .foot { display: flex; gap: 12px; padding: 20px 0; flex-wrap: wrap; align-items: center; justify-content: space-between; }
@@ -421,16 +477,16 @@
 
     <h2>the structure</h2>
     <section class="tiles layout-2v-2h-left-3q" aria-label="Two horizontals left (3/4), two stacked right (1/4)">
-    <div class="left">
-        <figure class="tile ar-16x9"><a href="#"><img class="media" src="bookcover.png" alt="Horizontal Top" loading="lazy"></a></figure>
-        <figure class="tile ar-16x9"><a href="#"><img class="media" src="bookpage.png" alt="Horizontal Bottom" loading="lazy"></a></figure>
-    </div>
-    <div class="right">
-        <figure class="tile ar-3x4"><a href="#"><img class="media" src="lego_building_1.png" alt="Vertical A" loading="lazy"></a></figure>
-        <figure class="tile ar-3x4"><a href="#"><img class="media" src="lego_building_2.png" alt="Vertical B" loading="lazy"></a></figure>
-    </div>
+      <div class="left">
+          <figure class="tile ar-16x9"><a href="#"><img class="media" src="bookcover.png" alt="Horizontal Top" loading="lazy"></a></figure>
+          <figure class="tile ar-16x9"><a href="#"><img class="media" src="bookpage.png" alt="Horizontal Bottom" loading="lazy"></a></figure>
+      </div>
+      <div class="right">
+          <figure class="tile ar-3x4"><a href="#"><img class="media" src="lego_building_1.png" alt="Vertical A" loading="lazy"></a></figure>
+          <figure class="tile ar-3x4"><a href="#"><img class="media" src="lego_building_2.png" alt="Vertical B" loading="lazy"></a></figure>
+      </div>
     </section>
-        
+
     <h2>Contact</h2>
     <section id="contact">
         <div class="form-embed full-bleed" role="region" aria-label="Submission form (Google Forms)">
